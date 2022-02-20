@@ -1,6 +1,6 @@
-from django.conf.urls import url
+from django.urls import path
 
 from . import routes
 urlpatterns = [
-    url('classify', routes.index, name='index'),
+    path('classify', routes.index, name='index'),
 ]
