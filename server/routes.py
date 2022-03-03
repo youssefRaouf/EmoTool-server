@@ -26,6 +26,7 @@ lables = {
     4: "Joy"
 }
 
+
 def get_vector_from_embedding(text):
   # Get Word Vectors
     vec = 0
@@ -37,6 +38,7 @@ def get_vector_from_embedding(text):
         return vec
     else:
         return np.zeros(300)
+
 
 def tokenize_remove_stop_words(text):
     # Get Stop Words
@@ -53,11 +55,13 @@ def tokenize_remove_stop_words(text):
             wordsFiltered.append(w.lower())
     return wordsFiltered
 
+
 def stem(text):
     porter_stemmer = PorterStemmer()
     # Stem Words
     for col, token in enumerate(text):
         text[col] = porter_stemmer.stem(token)
+
 
 def tokonize(sentences, tokenizer, max_len):
     input_ids, attention_mask = [], []
@@ -69,6 +73,7 @@ def tokonize(sentences, tokenizer, max_len):
 
     return np.array(input_ids, dtype='int32'), np.array(attention_mask, dtype='int32')
 
+
 def tokenize_data(tweet, tokenizer):
     '''
     Toknize Data sets 
@@ -77,6 +82,7 @@ def tokenize_data(tweet, tokenizer):
     max_len = 40
     input_ids, attention_masks = tokonize(tweet, tokenizer, max_len)
     return input_ids, attention_masks
+
 
 @api_view(['POST'])
 def index(request):
@@ -112,15 +118,25 @@ def index(request):
             [tweet_ids_XLnet, tweet_mask_XLnet])
         XLnet_prediction = map[list(
             predict_XLnet[0]).index(max(predict_XLnet[0]))]
+        tokenized = tokenize_remove_stop_words(tweet)
+        stem(tokenized)
+        vector = get_vector_from_embedding(tokenized)
+        with open('saved_models/logisticRegressionModel.pkl', 'rb') as f:
+            clf2 = pickle.load(f)
+        prediction = clf2.predict([vector])
+        logisticPrediction = lables[prediction[0]]
+        ensemble_prediction = ""
+        if bert_prediction == roberta_prediction:
+            ensemble_prediction = roberta_prediction
+        elif bert_prediction == XLnet_prediction:
+            ensemble_prediction = bert_prediction
+        elif roberta_prediction == XLnet_prediction:
+            ensemble_prediction = roberta_prediction
+        else:
+            pred = np.add(predict_XLnet[0],predict_bert[0])
+            pred = np.add(pred,predict_roberta[0])
+            ensemble_prediction = map[np.argmax(pred)]
 
-        # tokenized = tokenize_remove_stop_words(tweet)
-        # stem(tokenized)
-        # vector = get_vector_from_embedding(tokenized)
-        # with open('saved_models/logisticRegressionModel.pkl', 'rb') as f:
-        #     clf2 = pickle.load(f)
-        # prediction = clf2.predict([vector])
-        # logisticPrediction  = lables[prediction[0]]
-        
-        return HttpResponse("Bert Prediction {} \n Roberta Prediction {} \n XLnet Prediction {}".format(bert_prediction, roberta_prediction, XLnet_prediction))
+        return HttpResponse("Bert Prediction {} \n Roberta Prediction {} \n XLnet Prediction {} \n Ensemble Prediction {} \n Logistic Prediction {}".format(bert_prediction, roberta_prediction, XLnet_prediction, ensemble_prediction, logisticPrediction))
     except ValueError as e:
         return Response(e.args[0], status.HTTP_400_BAD_REQUEST)
