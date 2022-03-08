@@ -1,3 +1,4 @@
+import requests
 from rest_framework.response import Response
 from rest_framework import status
 from gensim.models import KeyedVectors
@@ -140,3 +141,16 @@ def index(request):
         return HttpResponse("Bert Prediction {} \n Roberta Prediction {} \n XLnet Prediction {} \n Ensemble Prediction {} \n Logistic Prediction {}".format(bert_prediction, roberta_prediction, XLnet_prediction, ensemble_prediction, logisticPrediction))
     except ValueError as e:
         return Response(e.args[0], status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def get_tweets(request):
+    body = json.loads(request.body)
+    userId = body['userId']
+    if userId:
+        endpointURL = f'https://api.twitter.com/2/users/{userId}/tweets'
+        response = requests.get(endpointURL, headers={
+        "Authorization": f'Bearer AAAAAAAAAAAAAAAAAAAAAEDmZwEAAAAAKprbLSn%2BoS3cqzzFnQ5SFatPSp0%3DiQN4FTV44eE5fLrjxazxZ4hN7Se7RKPFQ4HYestJzKhuDm3yBY'})
+        return HttpResponse(response)
+    else:
+        return Response("bad request", status.HTTP_400_BAD_REQUEST)
