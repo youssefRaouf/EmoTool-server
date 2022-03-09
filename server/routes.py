@@ -13,6 +13,7 @@ import pickle
 import numpy as np
 import nltk
 import demoji
+import tweepy
 nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
@@ -143,14 +144,47 @@ def index(request):
         return Response(e.args[0], status.HTTP_400_BAD_REQUEST)
 
 
+
 @api_view(['POST'])
 def get_tweets(request):
     body = json.loads(request.body)
+
+
     userId = body['userId']
+
+    # Access Token of user
+    accessToken = body['accessToken'];
+
+    # Access Token secret of user
+    accessTokenSecret = body['accessTokenSecret']
+
+    # Max Result to retrieve
+    max_results = 20;
+
     if userId:
-        endpointURL = f'https://api.twitter.com/2/users/{userId}/tweets'
-        response = requests.get(endpointURL, headers={
-        "Authorization": f'Bearer AAAAAAAAAAAAAAAAAAAAAEDmZwEAAAAAKprbLSn%2BoS3cqzzFnQ5SFatPSp0%3DiQN4FTV44eE5fLrjxazxZ4hN7Se7RKPFQ4HYestJzKhuDm3yBY'})
-        return HttpResponse(response)
+
+        # Auth
+        auth = tweepy.OAuth1UserHandler(
+            consumer_key="pqCKc0wsOiBHZ5Sfxj5Qf0OUA",
+            consumer_secret="AFeIj1XGAGyHezOVm1cGAG563rUKDqAAGshRXUuBflDTM7ZwH1",
+            access_token=f"{accessToken}",
+            access_token_secret=f"{accessTokenSecret}"
+        )
+
+        # Call twitter api
+        api = tweepy.API(auth);
+
+        # Get user tweets
+        response = api.user_timeline(id=userId,count=max_results)
+
+        # Getting tweets from responsse
+        tweets = [];
+        for tweet in response:
+            tweets.append(tweet.text);
+
+        tweets = json.dumps(tweets);
+
+        return HttpResponse(tweets)
     else:
         return Response("bad request", status.HTTP_400_BAD_REQUEST)
+
