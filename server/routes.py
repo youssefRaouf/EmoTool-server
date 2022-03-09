@@ -135,8 +135,8 @@ def index(request):
         elif roberta_prediction == XLnet_prediction:
             ensemble_prediction = roberta_prediction
         else:
-            pred = np.add(predict_XLnet[0],predict_bert[0])
-            pred = np.add(pred,predict_roberta[0])
+            pred = np.add(predict_XLnet[0], predict_bert[0])
+            pred = np.add(pred, predict_roberta[0])
             ensemble_prediction = map[np.argmax(pred)]
 
         return HttpResponse("Bert Prediction {} \n Roberta Prediction {} \n XLnet Prediction {} \n Ensemble Prediction {} \n Logistic Prediction {}".format(bert_prediction, roberta_prediction, XLnet_prediction, ensemble_prediction, logisticPrediction))
@@ -144,25 +144,17 @@ def index(request):
         return Response(e.args[0], status.HTTP_400_BAD_REQUEST)
 
 
-
 @api_view(['POST'])
 def get_tweets(request):
     body = json.loads(request.body)
-
-
     userId = body['userId']
-
     # Access Token of user
-    accessToken = body['accessToken'];
-
+    accessToken = body['accessToken']
     # Access Token secret of user
     accessTokenSecret = body['accessTokenSecret']
-
     # Max Result to retrieve
-    max_results = 20;
-
+    max_results = 20
     if userId:
-
         # Auth
         auth = tweepy.OAuth1UserHandler(
             consumer_key="pqCKc0wsOiBHZ5Sfxj5Qf0OUA",
@@ -170,21 +162,15 @@ def get_tweets(request):
             access_token=f"{accessToken}",
             access_token_secret=f"{accessTokenSecret}"
         )
-
         # Call twitter api
-        api = tweepy.API(auth);
-
+        api = tweepy.API(auth)
         # Get user tweets
-        response = api.user_timeline(id=userId,count=max_results)
-
+        response = api.user_timeline(id=userId, count=max_results)
         # Getting tweets from responsse
-        tweets = [];
+        tweets = []
         for tweet in response:
-            tweets.append(tweet.text);
-
-        tweets = json.dumps(tweets);
-
+            tweets.append(tweet.text)
+        tweets = json.dumps(tweets)
         return HttpResponse(tweets)
     else:
         return Response("bad request", status.HTTP_400_BAD_REQUEST)
-
