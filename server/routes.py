@@ -90,21 +90,24 @@ def index(request):
 
     try:
         server_config = apps.get_app_config('server')
+
         roberta_tokenizer = server_config.roberta_tokenizer
-        bert_tokenizer = server_config.bert_tokenizer
-        XLnet_tokenizer = server_config.XLnet_tokenizer
+        # bert_tokenizer = server_config.bert_tokenizer
+        # XLnet_tokenizer = server_config.XLnet_tokenizer
+
         roberta_model = server_config.roberta_model
-        bert_model = server_config.bert_model
-        Xlnet_model = server_config.Xlnet_model
+        # bert_model = server_config.bert_model
+        # Xlnet_model = server_config.Xlnet_model
+
         map = {0: 'anger', 1: 'disgust', 2: 'fear', 3: 'joy',
                4: 'sadness', 5: 'surprise', 6: 'neutral'}
 
         tweet = json.loads(request.body)["text"]
 
-        tweet_ids_bert, tweet_mask_bert = tokenize_data(tweet, bert_tokenizer)
-        predict_bert = bert_model.predict([tweet_ids_bert, tweet_mask_bert])
-        bert_prediction = map[list(
-            predict_bert[0]).index(max(predict_bert[0]))]
+        # tweet_ids_bert, tweet_mask_bert = tokenize_data(tweet, bert_tokenizer)
+        # predict_bert = bert_model.predict([tweet_ids_bert, tweet_mask_bert])
+        # bert_prediction = map[list(
+        #     predict_bert[0]).index(max(predict_bert[0]))]
 
         tweet_ids_roberta, tweet_mask_roberta = tokenize_data(
             tweet, roberta_tokenizer)
@@ -113,12 +116,13 @@ def index(request):
         roberta_prediction = map[list(
             predict_roberta[0]).index(max(predict_roberta[0]))]
 
-        tweet_ids_XLnet, tweet_mask_XLnet = tokenize_data(
-            tweet, XLnet_tokenizer)
-        predict_XLnet = Xlnet_model.predict(
-            [tweet_ids_XLnet, tweet_mask_XLnet])
-        XLnet_prediction = map[list(
-            predict_XLnet[0]).index(max(predict_XLnet[0]))]
+        # tweet_ids_XLnet, tweet_mask_XLnet = tokenize_data(
+        #     tweet, XLnet_tokenizer)
+        # predict_XLnet = Xlnet_model.predict(
+        #     [tweet_ids_XLnet, tweet_mask_XLnet])
+        # XLnet_prediction = map[list(
+        #     predict_XLnet[0]).index(max(predict_XLnet[0]))]
+
         tokenized = tokenize_remove_stop_words(tweet)
         stem(tokenized)
         vector = get_vector_from_embedding(tokenized)
@@ -126,19 +130,20 @@ def index(request):
             clf2 = pickle.load(f)
         prediction = clf2.predict([vector])
         logisticPrediction = lables[prediction[0]]
-        ensemble_prediction = ""
-        if bert_prediction == roberta_prediction:
-            ensemble_prediction = roberta_prediction
-        elif bert_prediction == XLnet_prediction:
-            ensemble_prediction = bert_prediction
-        elif roberta_prediction == XLnet_prediction:
-            ensemble_prediction = roberta_prediction
-        else:
-            pred = np.add(predict_XLnet[0],predict_bert[0])
-            pred = np.add(pred,predict_roberta[0])
-            ensemble_prediction = map[np.argmax(pred)]
+        # ensemble_prediction = ""
+        # if bert_prediction == roberta_prediction:
+        #     ensemble_prediction = roberta_prediction
+        # elif bert_prediction == XLnet_prediction:
+        #     ensemble_prediction = bert_prediction
+        # elif roberta_prediction == XLnet_prediction:
+        #     ensemble_prediction = roberta_prediction
+        # else:
+        #     pred = np.add(predict_XLnet[0],predict_bert[0])
+        #     pred = np.add(pred,predict_roberta[0])
+        #     ensemble_prediction = map[np.argmax(pred)]
+        return HttpResponse("Roberta Prediction {}".format(roberta_prediction))
 
-        return HttpResponse("Bert Prediction {} \n Roberta Prediction {} \n XLnet Prediction {} \n Ensemble Prediction {} \n Logistic Prediction {}".format(bert_prediction, roberta_prediction, XLnet_prediction, ensemble_prediction, logisticPrediction))
+        # return HttpResponse("Bert Prediction {} \n Roberta Prediction {} \n XLnet Prediction {} \n Ensemble Prediction {} \n Logistic Prediction {}".format(bert_prediction, roberta_prediction, XLnet_prediction, ensemble_prediction, logisticPrediction))
     except ValueError as e:
         return Response(e.args[0], status.HTTP_400_BAD_REQUEST)
 
