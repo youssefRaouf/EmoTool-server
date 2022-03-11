@@ -13,6 +13,7 @@ import pickle
 import numpy as np
 import nltk
 import demoji
+import tweepy
 nltk.download('stopwords')
 nltk.download('punkt')
 nltk.download('wordnet')
@@ -84,30 +85,23 @@ def tokenize_data(tweet, tokenizer):
     input_ids, attention_masks = tokonize(tweet, tokenizer, max_len)
     return input_ids, attention_masks
 
-
-@api_view(['POST'])
-def index(request):
-
-    try:
+def classify_tweet(tweet):
         server_config = apps.get_app_config('server')
 
         roberta_tokenizer = server_config.roberta_tokenizer
-        # bert_tokenizer = server_config.bert_tokenizer
-        # XLnet_tokenizer = server_config.XLnet_tokenizer
+        bert_tokenizer = server_config.bert_tokenizer
+        XLnet_tokenizer = server_config.XLnet_tokenizer
 
         roberta_model = server_config.roberta_model
-        # bert_model = server_config.bert_model
-        # Xlnet_model = server_config.Xlnet_model
+        bert_model = server_config.bert_model
+        Xlnet_model = server_config.Xlnet_model
 
         map = {0: 'anger', 1: 'disgust', 2: 'fear', 3: 'joy',
                4: 'sadness', 5: 'surprise', 6: 'neutral'}
-
-        tweet = json.loads(request.body)["text"]
-
-        # tweet_ids_bert, tweet_mask_bert = tokenize_data(tweet, bert_tokenizer)
-        # predict_bert = bert_model.predict([tweet_ids_bert, tweet_mask_bert])
-        # bert_prediction = map[list(
-        #     predict_bert[0]).index(max(predict_bert[0]))]
+        tweet_ids_bert, tweet_mask_bert = tokenize_data(tweet, bert_tokenizer)
+        predict_bert = bert_model.predict([tweet_ids_bert, tweet_mask_bert])
+        bert_prediction = map[list(
+            predict_bert[0]).index(max(predict_bert[0]))]
 
         tweet_ids_roberta, tweet_mask_roberta = tokenize_data(
             tweet, roberta_tokenizer)
@@ -116,12 +110,12 @@ def index(request):
         roberta_prediction = map[list(
             predict_roberta[0]).index(max(predict_roberta[0]))]
 
-        # tweet_ids_XLnet, tweet_mask_XLnet = tokenize_data(
-        #     tweet, XLnet_tokenizer)
-        # predict_XLnet = Xlnet_model.predict(
-        #     [tweet_ids_XLnet, tweet_mask_XLnet])
-        # XLnet_prediction = map[list(
-        #     predict_XLnet[0]).index(max(predict_XLnet[0]))]
+        tweet_ids_XLnet, tweet_mask_XLnet = tokenize_data(
+            tweet, XLnet_tokenizer)
+        predict_XLnet = Xlnet_model.predict(
+            [tweet_ids_XLnet, tweet_mask_XLnet])
+        XLnet_prediction = map[list(
+            predict_XLnet[0]).index(max(predict_XLnet[0]))]
 
         tokenized = tokenize_remove_stop_words(tweet)
         stem(tokenized)
@@ -130,19 +124,28 @@ def index(request):
             clf2 = pickle.load(f)
         prediction = clf2.predict([vector])
         logisticPrediction = lables[prediction[0]]
-        # ensemble_prediction = ""
-        # if bert_prediction == roberta_prediction:
-        #     ensemble_prediction = roberta_prediction
-        # elif bert_prediction == XLnet_prediction:
-        #     ensemble_prediction = bert_prediction
-        # elif roberta_prediction == XLnet_prediction:
-        #     ensemble_prediction = roberta_prediction
-        # else:
-        #     pred = np.add(predict_XLnet[0],predict_bert[0])
-        #     pred = np.add(pred,predict_roberta[0])
-        #     ensemble_prediction = map[np.argmax(pred)]
-        return HttpResponse("Roberta Prediction {}".format(roberta_prediction))
+        ensemble_prediction = ""
+        if bert_prediction == roberta_prediction:
+            ensemble_prediction = roberta_prediction
+        elif bert_prediction == XLnet_prediction:
+            ensemble_prediction = bert_prediction
+        elif roberta_prediction == XLnet_prediction:
+            ensemble_prediction = roberta_prediction
+        else:
+            pred = np.add(predict_XLnet[0],predict_bert[0])
+            pred = np.add(pred,predict_roberta[0])
+            ensemble_prediction = map[np.argmax(pred)]
 
+        return ensemble_prediction
+        # return logisticPrediction
+
+@api_view(['POST'])
+def index(request):
+
+    try:
+        tweet = json.loads(request.body)["text"]
+        prediction = classify_tweet(tweet)
+        return HttpResponse("Classification {}".format(prediction))
         # return HttpResponse("Bert Prediction {} \n Roberta Prediction {} \n XLnet Prediction {} \n Ensemble Prediction {} \n Logistic Prediction {}".format(bert_prediction, roberta_prediction, XLnet_prediction, ensemble_prediction, logisticPrediction))
     except ValueError as e:
         return Response(e.args[0], status.HTTP_400_BAD_REQUEST)
@@ -152,10 +155,34 @@ def index(request):
 def get_tweets(request):
     body = json.loads(request.body)
     userId = body['userId']
+    # Access Token of user
+    accessToken = body['accessToken']
+    # Access Token secret of user
+    accessTokenSecret = body['accessTokenSecret']
+    # Max Result to retrieve
+    max_results = 20
     if userId:
-        endpointURL = f'https://api.twitter.com/2/users/{userId}/tweets'
-        response = requests.get(endpointURL, headers={
-        "Authorization": f'Bearer AAAAAAAAAAAAAAAAAAAAAEDmZwEAAAAAKprbLSn%2BoS3cqzzFnQ5SFatPSp0%3DiQN4FTV44eE5fLrjxazxZ4hN7Se7RKPFQ4HYestJzKhuDm3yBY'})
-        return HttpResponse(response)
+        # Auth
+        auth = tweepy.OAuth1UserHandler(
+            consumer_key="pqCKc0wsOiBHZ5Sfxj5Qf0OUA",
+            consumer_secret="AFeIj1XGAGyHezOVm1cGAG563rUKDqAAGshRXUuBflDTM7ZwH1",
+            access_token=f"{accessToken}",
+            access_token_secret=f"{accessTokenSecret}"
+        )
+        # Call twitter api
+        api = tweepy.API(auth)
+        # Get user tweets
+        response = api.user_timeline(id=userId, count=max_results)
+        # Getting tweets from responsse
+        tweets = []
+        # Labeling tweets
+        for tweet in response:
+            labeled_tweet = {}
+            print(tweet.text)
+            labeled_tweet['tweet'] = tweet.text
+            labeled_tweet['label'] = classify_tweet(tweet.text)
+            tweets.append(labeled_tweet)
+        tweets = json.dumps(tweets)
+        return HttpResponse(tweets)
     else:
         return Response("bad request", status.HTTP_400_BAD_REQUEST)
