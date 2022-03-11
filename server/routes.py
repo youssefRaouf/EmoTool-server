@@ -19,13 +19,13 @@ nltk.download('punkt')
 nltk.download('wordnet')
 
 lablesForClassical = {
-    7: "Neutral",
-    3: "Fear",
-    2: "Disgust",
-    5: "Sad",
-    6: "Surprise",
-    1: "Anger",
-    4: "Joy"
+    7: "neutral",
+    3: "fear",
+    2: "disgust",
+    5: "sadness",
+    6: "surprise",
+    1: "anger",
+    4: "joy"
 }
 
 
