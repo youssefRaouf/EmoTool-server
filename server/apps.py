@@ -58,7 +58,6 @@ class ServerConfig(AppConfig):
 
         self.roberta_model = TFRobertaModel.from_pretrained('roberta-large')
         self.roberta_model = self.create_model(self.roberta_model, max_len)
-        # model.summary()
         self.roberta_model.load_weights("saved_models/Roberta_weights.h5")
 
         # run on Bert
@@ -70,7 +69,6 @@ class ServerConfig(AppConfig):
 
         self.bert_model = TFBertModel.from_pretrained('bert-large-cased')
         self.bert_model = self.create_model(self.bert_model, max_len)
-        # bert_model.summary()
         self.bert_model.load_weights("saved_models/Bert.h5")
 
         # run on Xlnet
@@ -82,5 +80,4 @@ class ServerConfig(AppConfig):
 
         self.Xlnet_model = TFXLNetModel.from_pretrained('xlnet-large-cased')
         self.Xlnet_model = self.create_model(self.Xlnet_model, max_len, pool=True)
-        # Xlnet_model.summary()
         self.Xlnet_model.load_weights("saved_models/XLnet.h5")
