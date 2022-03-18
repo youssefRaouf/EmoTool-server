@@ -177,3 +177,18 @@ def get_tweets(request):
         return HttpResponse(tweets)
     else:
         return Response("bad request", status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['POST'])
+def classify_multiple_tweets(request):
+    body = json.loads(request.body)
+    tweets = body['tweets']
+    result = []
+    # Labeling tweets
+    for tweet in tweets:
+        labeled_tweet = {}
+        labeled_tweet['text'] = tweet['text']
+        labeled_tweet['label'] = classify_tweet(tweet['text'])
+        result.append(labeled_tweet)
+    result = json.dumps(result)
+    return HttpResponse(result)
