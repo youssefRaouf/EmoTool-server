@@ -187,6 +187,7 @@ def classify_multiple_tweets(request):
     # Labeling tweets
     for tweet in tweets:
         labeled_tweet = {}
+        labeled_tweet['id'] = tweet['id']
         labeled_tweet['text'] = tweet['text']
         labeled_tweet['label'] = classify_tweet(tweet['text'])
         result.append(labeled_tweet)
