@@ -67,11 +67,13 @@ def stem(text):
 
 def tokonize(sentences, tokenizer, max_len):
     input_ids, attention_mask = [], []
-    inputs = tokenizer.encode_plus(sentences, add_special_tokens=True,   max_length=max_len, pad_to_max_length=True,
-                                   return_attention_mask=True)
-
-    input_ids.append(inputs['input_ids'])
-    attention_mask.append(inputs['attention_mask'])
+    for sentence in sentences:
+        inputs = tokenizer.encode_plus(sentence, add_special_tokens=True,   max_length=max_len, pad_to_max_length=True,
+                                       return_attention_mask=True)
+        input_ids.append(inputs['input_ids'])
+        attention_mask.append(inputs['attention_mask'])
+    # input_ids.append(inputs['input_ids'])
+    # attention_mask.append(inputs['attention_mask'])
 
     return np.array(input_ids, dtype='int32'), np.array(attention_mask, dtype='int32')
 
@@ -174,11 +176,15 @@ def get_tweets(request):
         # Getting tweets from responsse
         tweets = []
         # Labeling tweets
+        text = []
         for tweet in response:
+            text.append(tweet.text)
+        classifications = classify_tweets(text)
+        for i in range(len(response)):
             labeled_tweet = {}
-            labeled_tweet['tweet'] = tweet.text
-            labeled_tweet['date'] = tweet.created_at.isoformat()
-            labeled_tweet['label'] = classify_tweet(tweet.text)
+            labeled_tweet['tweet'] = response[i].text
+            labeled_tweet['date'] = response[i].created_at.isoformat()
+            labeled_tweet['label'] = classifications[i]
             tweets.append(labeled_tweet)
         tweets = json.dumps(tweets)
         return HttpResponse(tweets)
@@ -186,17 +192,39 @@ def get_tweets(request):
         return Response("bad request", status.HTTP_400_BAD_REQUEST)
 
 
+def classify_tweets(tweets):
+    server_config = apps.get_app_config('server')
+    roberta_tokenizer = server_config.roberta_tokenizer
+    roberta_model = server_config.roberta_model
+
+    map = {0: 'anger', 1: 'disgust', 2: 'fear', 3: 'joy',
+           4: 'sadness', 5: 'surprise', 6: 'neutral'}
+    tweet_ids_roberta, tweet_mask_roberta = tokenize_data(
+        tweets, roberta_tokenizer)
+    predict_roberta = roberta_model.predict(
+        [tweet_ids_roberta, tweet_mask_roberta])
+    predictions = []
+    for i in range(len(predict_roberta)):
+        predictions.append(map[list(
+            predict_roberta[i]).index(max(predict_roberta[i]))])
+    return predictions
+
+
 @api_view(['POST'])
 def classify_multiple_tweets(request):
     body = json.loads(request.body)
     tweets = body['tweets']
     result = []
+    text = []
     # Labeling tweets
     for tweet in tweets:
+        text.append(tweet['text'])
+    classifications = classify_tweets(text)
+    for i in range(len(tweets)):
         labeled_tweet = {}
-        labeled_tweet['id'] = tweet['id']
-        labeled_tweet['text'] = tweet['text']
-        labeled_tweet['label'] = classify_tweet(tweet['text'])
+        labeled_tweet['id'] = tweets[i]['id']
+        labeled_tweet['text'] = tweets[i]['text']
+        labeled_tweet['label'] = classifications[i]
         result.append(labeled_tweet)
     result = json.dumps(result)
     return HttpResponse(result)
