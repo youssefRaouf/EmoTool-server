@@ -51,33 +51,33 @@ class ServerConfig(AppConfig):
         max_len = 40
         # run on Roberta
         self.roberta_tokenizer = RobertaTokenizer.from_pretrained(
-            'roberta-large',
+            'roberta-base',
             add_special_tokens=True,
             max_length=max_len,
             pad_to_max_length=True)  # Tokenizer
 
-        self.roberta_model = TFRobertaModel.from_pretrained('roberta-large')
+        self.roberta_model = TFRobertaModel.from_pretrained('roberta-base')
         self.roberta_model = self.create_model(self.roberta_model, max_len)
         self.roberta_model.load_weights("saved_models/Roberta_weights.h5")
 
         # run on Bert
         self.bert_tokenizer = BertTokenizer.from_pretrained(
-            'bert-large-cased',
+            'bert-base-cased',
             add_special_tokens=True,
             max_length=max_len,
             pad_to_max_length=True)  # Tokenizer
 
-        self.bert_model = TFBertModel.from_pretrained('bert-large-cased')
+        self.bert_model = TFBertModel.from_pretrained('bert-base-cased')
         self.bert_model = self.create_model(self.bert_model, max_len)
         self.bert_model.load_weights("saved_models/Bert.h5")
 
         # run on Xlnet
         self.XLnet_tokenizer = AutoTokenizer.from_pretrained(
-            'xlnet-large-cased',
+            'xlnet-base-cased',
             add_special_tokens=True,
             max_length=max_len,
             pad_to_max_length=True)
 
-        self.Xlnet_model = TFXLNetModel.from_pretrained('xlnet-large-cased')
+        self.Xlnet_model = TFXLNetModel.from_pretrained('xlnet-base-cased')
         self.Xlnet_model = self.create_model(self.Xlnet_model, max_len, pool=True)
         self.Xlnet_model.load_weights("saved_models/XLnet.h5")

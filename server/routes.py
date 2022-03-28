@@ -129,6 +129,13 @@ def classify_tweet(tweet):
         pred = np.add(pred, predict_roberta[0])
         ensemble_prediction = map[np.argmax(pred)]
 
+    # tokenized = tokenize_remove_stop_words(tweet)
+    # stem(tokenized)
+    # vector = get_vector_from_embedding(tokenized)
+    # with open('saved_models/logisticRegressionModel.pkl', 'rb') as f:
+    #     clf2 = pickle.load(f)
+    # prediction = clf2.predict([vector])
+    # logisticPrediction = lablesForClassical[prediction[0]]
     return ensemble_prediction
 
 
@@ -151,7 +158,7 @@ def get_tweets(request):
     # Access Token secret of user
     accessTokenSecret = body['accessTokenSecret']
     # Max Result to retrieve
-    max_results = 20
+    max_results = 2000
     if userId:
         # Auth
         auth = tweepy.OAuth1UserHandler(
