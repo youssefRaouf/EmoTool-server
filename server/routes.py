@@ -1,4 +1,3 @@
-import requests
 from rest_framework.response import Response
 from rest_framework import status
 from gensim.models import KeyedVectors
@@ -9,7 +8,6 @@ from nltk.tokenize import word_tokenize
 from django.http import HttpResponse
 from rest_framework.decorators import api_view
 import json
-import pickle
 import numpy as np
 import nltk
 import demoji
@@ -92,53 +90,21 @@ def classify_tweet(tweet):
     server_config = apps.get_app_config('server')
 
     roberta_tokenizer = server_config.roberta_tokenizer
-    bert_tokenizer = server_config.bert_tokenizer
-    XLnet_tokenizer = server_config.XLnet_tokenizer
 
     roberta_model = server_config.roberta_model
-    bert_model = server_config.bert_model
-    Xlnet_model = server_config.Xlnet_model
 
     map = {0: 'anger', 1: 'disgust', 2: 'fear', 3: 'joy',
            4: 'sadness', 5: 'surprise', 6: 'neutral'}
-    tweet_ids_bert, tweet_mask_bert = tokenize_data(tweet, bert_tokenizer)
-    predict_bert = bert_model.predict([tweet_ids_bert, tweet_mask_bert])
-    bert_prediction = map[list(
-        predict_bert[0]).index(max(predict_bert[0]))]
+  
 
     tweet_ids_roberta, tweet_mask_roberta = tokenize_data(
-        tweet, roberta_tokenizer)
+        [tweet], roberta_tokenizer)
     predict_roberta = roberta_model.predict(
         [tweet_ids_roberta, tweet_mask_roberta])
     roberta_prediction = map[list(
         predict_roberta[0]).index(max(predict_roberta[0]))]
 
-    tweet_ids_XLnet, tweet_mask_XLnet = tokenize_data(
-        tweet, XLnet_tokenizer)
-    predict_XLnet = Xlnet_model.predict(
-        [tweet_ids_XLnet, tweet_mask_XLnet])
-    XLnet_prediction = map[list(
-        predict_XLnet[0]).index(max(predict_XLnet[0]))]
-    ensemble_prediction = ""
-    if bert_prediction == roberta_prediction:
-        ensemble_prediction = roberta_prediction
-    elif bert_prediction == XLnet_prediction:
-        ensemble_prediction = bert_prediction
-    elif roberta_prediction == XLnet_prediction:
-        ensemble_prediction = roberta_prediction
-    else:
-        pred = np.add(predict_roberta[0], predict_bert[0])
-        pred = np.add(pred, predict_roberta[0])
-        ensemble_prediction = map[np.argmax(pred)]
-
-    # tokenized = tokenize_remove_stop_words(tweet)
-    # stem(tokenized)
-    # vector = get_vector_from_embedding(tokenized)
-    # with open('saved_models/logisticRegressionModel.pkl', 'rb') as f:
-    #     clf2 = pickle.load(f)
-    # prediction = clf2.predict([vector])
-    # logisticPrediction = lablesForClassical[prediction[0]]
-    return ensemble_prediction
+    return roberta_prediction
 
 
 @api_view(['POST'])
