@@ -130,6 +130,8 @@ def classify_multiple_tweets(request):
         labeled_tweet['id'] = tweets[i]['id']
         labeled_tweet['text'] = tweets[i]['text']
         labeled_tweet['label'] = classifications[i]
+
+        labeled_tweet['userHandle'] = tweets[i]['userHandle'];
         result.append(labeled_tweet)
     result = json.dumps(result)
     return HttpResponse(result)
