@@ -1,68 +1,11 @@
-import requests
 from rest_framework.response import Response
 from rest_framework import status
-from gensim.models import KeyedVectors
 from django.apps import apps
-from nltk.corpus import stopwords
-from nltk.stem.porter import PorterStemmer
-from nltk.tokenize import word_tokenize
 from django.http import HttpResponse
 from rest_framework.decorators import api_view
 import json
-import pickle
 import numpy as np
-import nltk
-import demoji
 import tweepy
-nltk.download('stopwords')
-nltk.download('punkt')
-nltk.download('wordnet')
-
-lablesForClassical = {
-    7: "neutral",
-    3: "fear",
-    2: "disgust",
-    5: "sadness",
-    6: "surprise",
-    1: "anger",
-    4: "joy"
-}
-
-
-def get_vector_from_embedding(text):
-  # Get Word Vectors
-    vec = 0
-    wv = KeyedVectors.load("word2vec.wordvectors", mmap='r')
-    for word in text:
-        if(word in wv):
-            vec = vec+np.array(wv[word])
-    if type(vec) == type(np.array([])):
-        return vec
-    else:
-        return np.zeros(300)
-
-
-def tokenize_remove_stop_words(text):
-    # Get Stop Words
-    text = text.lower()
-    stopWords = set(stopwords.words('english'))
-    stopWords.add('[NAME]')
-    # Tokenize Corpus into Words
-    corpus_without_emojis = demoji.replace_with_desc(text, sep="")
-    words = word_tokenize(corpus_without_emojis)
-    # Filter Stopping
-    wordsFiltered = []
-    for w in words:
-        if w not in stopWords:
-            wordsFiltered.append(w.lower())
-    return wordsFiltered
-
-
-def stem(text):
-    porter_stemmer = PorterStemmer()
-    # Stem Words
-    for col, token in enumerate(text):
-        text[col] = porter_stemmer.stem(token)
 
 
 def tokonize(sentences, tokenizer, max_len):
@@ -72,8 +15,6 @@ def tokonize(sentences, tokenizer, max_len):
                                        return_attention_mask=True)
         input_ids.append(inputs['input_ids'])
         attention_mask.append(inputs['attention_mask'])
-    # input_ids.append(inputs['input_ids'])
-    # attention_mask.append(inputs['attention_mask'])
 
     return np.array(input_ids, dtype='int32'), np.array(attention_mask, dtype='int32')
 
@@ -90,55 +31,19 @@ def tokenize_data(tweet, tokenizer):
 
 def classify_tweet(tweet):
     server_config = apps.get_app_config('server')
-
-    roberta_tokenizer = server_config.roberta_tokenizer
-    bert_tokenizer = server_config.bert_tokenizer
-    XLnet_tokenizer = server_config.XLnet_tokenizer
-
-    roberta_model = server_config.roberta_model
-    bert_model = server_config.bert_model
-    Xlnet_model = server_config.Xlnet_model
+    server_tokenizer = server_config.server_tokenizer
+    server_model = server_config.server_model
 
     map = {0: 'anger', 1: 'disgust', 2: 'fear', 3: 'joy',
            4: 'sadness', 5: 'surprise', 6: 'neutral'}
-    tweet_ids_bert, tweet_mask_bert = tokenize_data(tweet, bert_tokenizer)
-    predict_bert = bert_model.predict([tweet_ids_bert, tweet_mask_bert])
-    bert_prediction = map[list(
-        predict_bert[0]).index(max(predict_bert[0]))]
 
-    tweet_ids_roberta, tweet_mask_roberta = tokenize_data(
-        tweet, roberta_tokenizer)
-    predict_roberta = roberta_model.predict(
-        [tweet_ids_roberta, tweet_mask_roberta])
-    roberta_prediction = map[list(
-        predict_roberta[0]).index(max(predict_roberta[0]))]
-
-    tweet_ids_XLnet, tweet_mask_XLnet = tokenize_data(
-        tweet, XLnet_tokenizer)
-    predict_XLnet = Xlnet_model.predict(
-        [tweet_ids_XLnet, tweet_mask_XLnet])
-    XLnet_prediction = map[list(
-        predict_XLnet[0]).index(max(predict_XLnet[0]))]
-    ensemble_prediction = ""
-    if bert_prediction == roberta_prediction:
-        ensemble_prediction = roberta_prediction
-    elif bert_prediction == XLnet_prediction:
-        ensemble_prediction = bert_prediction
-    elif roberta_prediction == XLnet_prediction:
-        ensemble_prediction = roberta_prediction
-    else:
-        pred = np.add(predict_roberta[0], predict_bert[0])
-        pred = np.add(pred, predict_roberta[0])
-        ensemble_prediction = map[np.argmax(pred)]
-
-    # tokenized = tokenize_remove_stop_words(tweet)
-    # stem(tokenized)
-    # vector = get_vector_from_embedding(tokenized)
-    # with open('saved_models/logisticRegressionModel.pkl', 'rb') as f:
-    #     clf2 = pickle.load(f)
-    # prediction = clf2.predict([vector])
-    # logisticPrediction = lablesForClassical[prediction[0]]
-    return ensemble_prediction
+    tweet_ids, tweet_mask = tokenize_data(
+        [tweet], server_tokenizer)
+    predictions_probabilities = server_model.predict(
+        [tweet_ids, tweet_mask])
+    prediction_label = map[list(
+        predictions_probabilities[0]).index(max(predictions_probabilities[0]))]
+    return prediction_label
 
 
 @api_view(['POST'])
@@ -194,20 +99,20 @@ def get_tweets(request):
 
 def classify_tweets(tweets):
     server_config = apps.get_app_config('server')
-    roberta_tokenizer = server_config.roberta_tokenizer
-    roberta_model = server_config.roberta_model
+    server_tokenizer = server_config.server_tokenizer
+    server_model = server_config.server_model
 
     map = {0: 'anger', 1: 'disgust', 2: 'fear', 3: 'joy',
            4: 'sadness', 5: 'surprise', 6: 'neutral'}
-    tweet_ids_roberta, tweet_mask_roberta = tokenize_data(
-        tweets, roberta_tokenizer)
-    predict_roberta = roberta_model.predict(
-        [tweet_ids_roberta, tweet_mask_roberta])
-    predictions = []
-    for i in range(len(predict_roberta)):
-        predictions.append(map[list(
-            predict_roberta[i]).index(max(predict_roberta[i]))])
-    return predictions
+    tweet_ids, tweet_mask = tokenize_data(
+        tweets, server_tokenizer)
+    predictions_probabilities = server_model.predict(
+        [tweet_ids, tweet_mask])
+    predictions_labels = []
+    for i in range(len(predictions_probabilities)):
+        predictions_labels.append(map[list(
+            predictions_probabilities[i]).index(max(predictions_probabilities[i]))])
+    return predictions_labels
 
 
 @api_view(['POST'])

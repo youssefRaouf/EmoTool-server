@@ -1,22 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-
 from django.apps import AppConfig
-from transformers import AutoTokenizer, RobertaTokenizer
-from transformers import TFRobertaModel
-from transformers import BertTokenizer, TFBertModel
-from transformers import TFXLNetModel
 import tensorflow as tf
+from transformers import DistilBertTokenizerFast, TFDistilBertModel
 
 
 class ServerConfig(AppConfig):
     name = 'server'
-    roberta_tokenizer = None
-    bert_tokenizer = None
-    XLnet_tokenizer = None
-    roberta_model = None
-    bert_model = None
-    Xlnet_model = None
+    server_tokenizer = None
+    server_model = None
 
     def pool_hidden_state(self, last_hidden_state):
         """
@@ -49,35 +41,13 @@ class ServerConfig(AppConfig):
 
     def ready(self):
         max_len = 40
-        # run on Roberta
-        self.roberta_tokenizer = RobertaTokenizer.from_pretrained(
-            'roberta-base',
-            add_special_tokens=True,
-            max_length=max_len,
-            pad_to_max_length=True)  # Tokenizer
-
-        self.roberta_model = TFRobertaModel.from_pretrained('roberta-base')
-        self.roberta_model = self.create_model(self.roberta_model, max_len)
-        self.roberta_model.load_weights("saved_models/Roberta_weights.h5")
-
-        # run on Bert
-        self.bert_tokenizer = BertTokenizer.from_pretrained(
-            'bert-base-cased',
-            add_special_tokens=True,
-            max_length=max_len,
-            pad_to_max_length=True)  # Tokenizer
-
-        self.bert_model = TFBertModel.from_pretrained('bert-base-cased')
-        self.bert_model = self.create_model(self.bert_model, max_len)
-        self.bert_model.load_weights("saved_models/Bert.h5")
-
-        # run on Xlnet
-        self.XLnet_tokenizer = AutoTokenizer.from_pretrained(
-            'xlnet-base-cased',
+        self.server_tokenizer = DistilBertTokenizerFast.from_pretrained(
+            'distilbert-base-cased',
             add_special_tokens=True,
             max_length=max_len,
             pad_to_max_length=True)
 
-        self.Xlnet_model = TFXLNetModel.from_pretrained('xlnet-base-cased')
-        self.Xlnet_model = self.create_model(self.Xlnet_model, max_len, pool=True)
-        self.Xlnet_model.load_weights("saved_models/XLnet.h5")
+        self.server_model = TFDistilBertModel.from_pretrained(
+            'distilbert-base-cased')
+        self.server_model = self.create_model(self.server_model, max_len, True)
+        self.server_model.load_weights("saved_models/distilBert69.h5")
