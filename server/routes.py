@@ -75,6 +75,7 @@ def get_tweets(request):
             access_token_secret=f"{accessTokenSecret}"
         )
         # Call twitter api
+        global api
         api = tweepy.API(auth)
         # Get user tweets
         response = api.user_timeline(id=userId, count=max_results)
@@ -131,7 +132,17 @@ def classify_multiple_tweets(request):
         labeled_tweet['text'] = tweets[i]['text']
         labeled_tweet['label'] = classifications[i]
 
-        labeled_tweet['userHandle'] = tweets[i]['userHandle'];
+        labeled_tweet['userHandle'] = tweets[i]['userHandle']
         result.append(labeled_tweet)
     result = json.dumps(result)
+    return HttpResponse(result)
+
+
+@api_view(['POST'])
+def check_follow(request):
+    body = json.loads(request.body)
+    screen_name = body['screen_name']
+    source_id = body['source_id']
+    r = api.get_friendship(source_id=source_id, target_screen_name=screen_name)
+    result = json.dumps({"following": r[0].following})
     return HttpResponse(result)
