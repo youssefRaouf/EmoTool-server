@@ -1,7 +1,8 @@
 from django.test import TestCase
 from server.routes import classify_tweet, classify_tweets
 
-
+# command python3.9 manage.py test server.tests.test_labels.TestLabels
+# command python3.9 manage.py test server.tests.test_runtime.TestRunTime
 
 ClassifySingle_tweet_dict = [{'text': 'Al Ahly just reached the third final in a row.What an amazing achievement.',
                               'label': 'joy'},
