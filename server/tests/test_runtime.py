@@ -11,10 +11,10 @@ class TestRunTime(SimpleTestCase):
 
         # Choose Random tweet
         rand = random.randint(0, len(ClassifySingle_tweet_dict)-1);
-
+        print(rand);
         # Tweet
         tweet = ClassifySingle_tweet_dict[rand]['text'];
-
+        print(tweet);
         # Start timer
         start_time = time.time()
         #Classify
@@ -23,7 +23,7 @@ class TestRunTime(SimpleTestCase):
         timeTaken = time.time()-start_time;
 
         # In milliseconds
-        #print(f"Time Taken in milliseconds {timeTaken*1000}")
+        #print(f"Time Taken in milliseconds Classify Single Random Tweet {timeTaken*1000}")
 
         # threshold
         threshold = 500
@@ -39,7 +39,7 @@ class TestRunTime(SimpleTestCase):
         timeTaken = time.time() - start_time;
 
         # In milliseconds
-        # print(f"Time Taken in milliseconds {timeTaken*1000}")
+        #print(f"Time Taken in milliseconds Classify Multiple tweets {timeTaken*1000}")
 
         # threshold 500 * number of tweets
         threshold = 500*len(ClassifyMultiple_tweet_dict['texts']);
